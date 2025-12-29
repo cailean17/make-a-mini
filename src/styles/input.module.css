@@ -1,0 +1,41 @@
+.wordInput{
+    height: 20px; 
+    border-radius: 5px;
+    padding-inline: 10px;
+    border-color: grey;
+    font-size: 10px;
+    
+}
+
+
+.label {
+  font-size: 0.2rem;
+  font-weight: 600;
+  color: #333;
+}
+
+
+.addWord{
+    background-color: #D3D3D3;
+    font-family: 'Lucida Sans';
+    font-size: 15px;
+}
+
+.saveWord{
+    background-color: #facc15;
+    font-family: 'Lucida Sans';
+}
+.inputDiv {
+    display: flex;
+    width: 50%;
+    margin-left: 25%;
+    flex-direction: column;
+}
+.clueInput{
+    height: 20px;
+    margin-top: 10px;
+    border-radius: 5px;
+    padding-inline: 10px;
+    border-color: grey;
+    font-size: 10px;
+}

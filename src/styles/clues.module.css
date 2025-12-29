@@ -1,0 +1,29 @@
+.divider{
+    border-left: 2px solid #b8b8b8; /* Line thickness & color */
+    height: 100%; /* Line height */
+    margin-top: 2%;
+}
+
+.clueDiv{
+    background-color: #D3D3D3;
+    margin-left: 10%;
+    margin-right: 10%;
+    margin-top:2%;
+    opacity: 0.5;
+}
+.selectedClueDiv{
+    background-color: #A7D3FF;
+    margin-top:2%;
+    margin-left: 10%;
+    margin-right: 10%;
+}
+.mainClueDiv{
+    background-color: #A7D3FF;
+    margin-top:2%;
+    padding:1%;
+}
+
+.clueText{
+    font-family: 'Cambria';
+    font-size: 20px;
+}
