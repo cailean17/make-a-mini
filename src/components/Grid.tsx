@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import Cell, { CELL_SIZE, EMPTY_CELL_VALUE, type CellValue } from "./Cell";
+import Cell, { CELL_SIZE, EMPTY_CELL_VALUE, FREEFORM_CELL_VALUE, type CellValue } from "./Cell";
 import type { WordOrientation, WordProps } from "./Word";
 import Word from "./Word";
 import inputStyles from "../styles/input.module.css";
@@ -14,7 +14,7 @@ export interface GridProps {
     widthCells: number
     heightCells: number
     setGridWidth: React.Dispatch<React.SetStateAction<number>>
-    setGridHeight:  React.Dispatch<React.SetStateAction<number>>
+    setGridHeight: React.Dispatch<React.SetStateAction<number>>
     gridRef: React.RefObject<SVGSVGElement | null>
 }
 
@@ -38,7 +38,7 @@ export interface Puzzle {
     clues: ClueGroup[],
 }
 
-type UserMode = "edit" | "play";
+type UserMode = "edit" | "play" | "freeform";
 
 export default function Grid(gridProps: GridProps) {
     const [mode, setMode] = useState<UserMode>("edit");
@@ -86,27 +86,29 @@ export default function Grid(gridProps: GridProps) {
     }, [mode]);
 
     useEffect(() => {
-        if (!selectedCellLocation || mode !== "play") return;
+        if (!selectedCellLocation || mode === "edit") return;
         manageCellClick(selectedCellLocation);
     }, [typingDirection, selectedCellLocation]);
 
     useEffect(() => {
-        if(!puzzleSolved){
-            const solved = gridValues.every(row => 
+        if (!puzzleSolved) {
+            const solved = gridValues.every(row =>
                 row.every(cell => !cell.blocked ? cell.input == cell.letter : true)
             )
-            console.log(solved);
-            if(solved){
+            if (solved) {
                 setShowSolvedModal(true);
                 setPuzzleSolved(true);
             }
         }
     }, [gridValues])
 
-    function createNewPuzzle(title: string, width: number, height: number){
+    function createNewPuzzle(title: string, width: number, height: number) {
         gridProps.setGridHeight(height);
         gridProps.setGridWidth(width);
-        setActivePuzzle({title:title, width: width, height: height } as Puzzle)
+        setActivePuzzle({ title: title, width: width, height: height } as Puzzle)
+        setGridValues(Array.from({ length: gridProps.heightCells }, () =>
+            Array.from({ length: gridProps.widthCells }, () => ({ letter: EMPTY_CELL_VALUE, highlighted: false, sourceHighlighted: false, blocked: false }) as CellValue)
+        ))
     }
 
     function handleNewPuzzleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -189,8 +191,9 @@ export default function Grid(gridProps: GridProps) {
     }
 
     useEffect(() => {
-        if (!selectedCellLocation || mode !== "play") return;
-
+        if (!selectedCellLocation || mode === "edit") {
+            return;
+        }
         const handleUserInput = (e: KeyboardEvent) => {
             if (/^[a-zA-Z]$/.test(e.key)) {
                 e.preventDefault();
@@ -216,9 +219,18 @@ export default function Grid(gridProps: GridProps) {
 
     }, [mode, typingDirection, selectedCellLocation])
 
+
+    function loadFreeForm() {
+        setGridValues(Array.from({ length: gridProps.heightCells }, () =>
+            Array.from({ length: gridProps.widthCells }, () => ({ letter: FREEFORM_CELL_VALUE, highlighted: false, sourceHighlighted: false, blocked: false }) as CellValue)
+        ))
+        setClueMap(new Map<number, ClueGroup>());
+    }
     function loadPuzzleFromCode(encodedPuzzle: string) {
         const loadedPuzzle = decodePuzzle(encodedPuzzle);
         setActivePuzzle(loadedPuzzle);
+        gridProps.setGridHeight(loadedPuzzle.height);
+        gridProps.setGridWidth(loadedPuzzle.width);
         setGridValues(loadedPuzzle.grid);
         setClueMap(deserializeClues(loadedPuzzle.clues));
         setMode("play");
@@ -226,6 +238,8 @@ export default function Grid(gridProps: GridProps) {
     }
     function loadPuzzle(puzzle: Puzzle) {
         setActivePuzzle(puzzle);
+        gridProps.setGridHeight(puzzle.height);
+        gridProps.setGridWidth(puzzle.width);
         setGridValues(puzzle.grid);
         setClueMap(deserializeClues(puzzle.clues));
         setMode("play");
@@ -383,14 +397,28 @@ export default function Grid(gridProps: GridProps) {
         );
         setNewWord([]);
         setSaveWordFlag(false)
-        console.log("HERE");
     }
 
     function manageCellClick(cellLocation: [number, number]) {
 
         clearCellHighlights();
         const clue = typingDirection == "Horizontal" ? clueMap.get(cellLocation[0]) : clueMap.get(cellLocation[1]);
-        if (!clue) return setActiveClue(undefined);
+        if (!clue) {
+            setActiveClue(undefined);
+
+            // highlight selected cell before continuing
+            console.log("FIRST")
+            setGridValues(prev =>
+                prev.map((row, r) =>
+                    row.map((cell, c) => {
+                        if (r === cellLocation[0] && c === cellLocation[1]) {
+                            return { ...cell, sourceHighlighted: true }
+                        } else {
+                            return cell;
+                        }
+                    })))
+            return;
+        }
         setActiveClue(clue);
 
         const targetLocation = typingDirection == "Horizontal" ? clue.acrossTargetLocation : clue.downTargetLocation;
@@ -462,6 +490,16 @@ export default function Grid(gridProps: GridProps) {
                     >
                         Play: ▚
                     </button>
+                    <button
+                        className={`${mainStyles.modeButton} ${mode === "play" ? mainStyles.activeMode : ""
+                            }`}
+                        onClick={() => {
+                            loadFreeForm();
+                            setMode("freeform");
+                        }}
+                    >
+                        Freeform: 🧩
+                    </button>
                 </div>
                 {mode === 'play' && (
                     <form
@@ -490,18 +528,18 @@ export default function Grid(gridProps: GridProps) {
                     }}>New Puzzle ✨</button>
                 )}
             </div>
-            <div style={{ marginTop: "5%", marginLeft: "10%", marginRight: "10%", maxHeight: "50%", overflowY: "auto" }} className={`${mainStyles.accentCard} ${mode === "edit" ? mainStyles.locked : ""
+            <div style={{ marginTop: "5%", marginLeft: "10%", marginRight: "10%", maxHeight: "50%", overflowY: "auto" }} className={`${mainStyles.accentCard} ${mode !== "play" ? mainStyles.locked : ""
                 }`} >
                 <h4 style={{ color: "black", marginTop: 0 }}><i>Active Puzzle</i></h4>
-                {mode === "edit" && (
+                {mode !== "play" && (
                     <div className={mainStyles.cardOverlay}>
                         🔒
                     </div>
                 )}
                 <div style={{ margin: "2%", display: "flex", flexDirection: 'row', flexWrap: 'wrap', justifyContent: "space-evenly" }}>
-                    <button style={{ borderColor: autoCheck ? "#a7d8ff" : "transparent" }} className={mainStyles.actionButton} disabled={mode === "edit"} onClick={() => setAutoCheck(!autoCheck)}>Auto-check</button>
-                    <button className={mainStyles.actionButton} disabled={mode === "edit"} onClick={() => clearPuzzle()}>Clear Puzzle</button>
-                    <button className={mainStyles.actionButton} disabled={mode === "edit"} onClick={() => revealPuzzle()}>Reveal Puzzle</button>
+                    <button style={{ borderColor: autoCheck ? "#a7d8ff" : "transparent" }} className={mainStyles.actionButton} disabled={mode !== "play"} onClick={() => setAutoCheck(!autoCheck)}>Auto-check</button>
+                    <button className={mainStyles.actionButton} disabled={mode !== "play"} onClick={() => clearPuzzle()}>Clear Puzzle</button>
+                    <button className={mainStyles.actionButton} disabled={mode === "play"} onClick={() => revealPuzzle()}>Reveal Puzzle</button>
                 </div>
             </div>
             <div style={{ marginTop: "5%", marginLeft: "10%", marginRight: "10%", maxHeight: "50%", overflowY: "auto" }} className={mainStyles.card}>
@@ -574,7 +612,7 @@ export default function Grid(gridProps: GridProps) {
                             <g
                                 transform={`translate(${j * CELL_SIZE},${i * CELL_SIZE})`}
                                 onClick={() => {
-                                    if (gridValues[i][j].blocked || mode !== "play" || gridValues[i][j].letter == '') {
+                                    if (gridValues[i][j].blocked || mode === "edit" || gridValues[i][j].letter == EMPTY_CELL_VALUE) {
                                         return;
                                     }
                                     setSelectedCellLocation([i, j]);
@@ -591,7 +629,7 @@ export default function Grid(gridProps: GridProps) {
                                     key={`${i}-${j}`} />;
                                 <text x={CELL_SIZE / 2} y={CELL_SIZE / 2} textAnchor="middle" dominantBaseline="middle" fill={autoCheck && mode === 'play' ? (cell.letter == cell.input) ? "#2860d8" : "red" : "black"
                                 }>
-                                    {mode === 'play' ? cell.input : cell.letter}
+                                    {mode !== 'edit' ? cell.input : cell.letter}
                                 </text>
                             </g>
                         )))

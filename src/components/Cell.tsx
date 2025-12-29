@@ -3,6 +3,7 @@ import { useRef, useEffect } from "react";
 
 export const CELL_SIZE = 30;
 export const EMPTY_CELL_VALUE = "";
+export const FREEFORM_CELL_VALUE = " ";
 
 export type CellAreaDatum = {
     x: number;
