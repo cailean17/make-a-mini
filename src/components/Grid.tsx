@@ -142,7 +142,7 @@ export default function Grid(gridProps: GridProps) {
         )
     }
     function moveInputCursorForward() {
-        if (!selectedCellLocation || mode !== "play") return;
+        if (!selectedCellLocation || mode === "edit") return;
 
         let next: [number, number] | null = null;
 
@@ -162,7 +162,7 @@ export default function Grid(gridProps: GridProps) {
     }
 
     function clearSelectedCellAndMoveBackward() {
-        if (!selectedCellLocation || mode !== "play") return;
+        if (!selectedCellLocation || mode === "edit") return;
 
         setGridValues(prev =>
             prev.map((row, i) =>
@@ -205,7 +205,6 @@ export default function Grid(gridProps: GridProps) {
                                 : cell
                         ))
                 )
-
                 moveInputCursorForward();
             }
 
@@ -213,6 +212,7 @@ export default function Grid(gridProps: GridProps) {
                 e.preventDefault();
                 clearSelectedCellAndMoveBackward();
             }
+        
         }
         window.addEventListener("keydown", handleUserInput);
         return () => window.removeEventListener("keydown", handleUserInput);
@@ -255,7 +255,6 @@ export default function Grid(gridProps: GridProps) {
                 )
             )
             const encodedPuzzleString = encodePuzzle(exportPuzzle(gridValues, clueMap, gridProps.widthCells, gridProps.heightCells, "12", "Cailean's New Puzzle"));
-            console.log("IN HERE " + encodedPuzzleString);
             try {
                 await navigator.clipboard.writeText(encodedPuzzleString);
                 console.log('Text copied to clipboard successfully');
@@ -407,7 +406,6 @@ export default function Grid(gridProps: GridProps) {
             setActiveClue(undefined);
 
             // highlight selected cell before continuing
-            console.log("FIRST")
             setGridValues(prev =>
                 prev.map((row, r) =>
                     row.map((cell, c) => {
